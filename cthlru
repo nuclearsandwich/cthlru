@@ -9,33 +9,31 @@ EOM
 }
 
 cache-read() {
-	cd "$cachedir/$cachename"
-	ls -tu | xargs cat
+	if [ -f "$cachefile" ]; then
+		tac "$cachefile"
+	fi
 }
 
 cache-hit() {
-	local sha=`echo "$value" | sha1sum | cut -d' ' -f1`
-	local file="$cachedir/$cachename/$sha"
-
-	if [ -f "$file" ]; then
-		touch -a "$file"
-	fi
-	echo "$value" > "$file"
+	touch "$cachefile"
+	tmpfile="$cachedir/.tmpfile"
+	grep -v "^${value}\$" "$cachefile" > "$tmpfile"
+	mv "$tmpfile" "$cachefile"
+	echo "$value" >> "$cachefile"
 }
 
 cachedir=${CTHLRU_CACHE:-"$HOME/.cthlru"}
 
-if [ -z "$1" ]; then
-	usage
-	exit
+	if [ -z "$1" ]; then
+		usage
+		exit
+	fi
+
+cachefile="$cachedir/$1"
+
+if [ ! -d "$cachedir" ]; then
+	mkdir -p "$cachedir"
 fi
-
-cachename="$1"
-
-if [ ! -d "$cachedir/$cachename" ]; then
-	mkdir -p "$cachedir/$cachename"
-fi
-
 
 if [ -n "$2" ]; then
 	value="$2"
@@ -43,5 +41,3 @@ if [ -n "$2" ]; then
 else
 	cache-read
 fi
-
-
